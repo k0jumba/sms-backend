@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PROD_WEBSERVER_PORT_MAPPING}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: ${PROD_DATABASE_URL}
+      DATABASE_USERNAME: ${PROD_DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${PROD_DATABASE_PASSWORD}
+
+volumes:
+  pgdata:
