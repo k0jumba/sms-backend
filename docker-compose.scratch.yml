@@ -1,0 +1,11 @@
+services:
+  db_scratch:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: scratch_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${SCRATCH_DATABASE_PORT_MAPPING}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data

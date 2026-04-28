@@ -21,7 +21,7 @@ target/
 
 ### NetBeans ###
 /nbproject/private/
-/nbbuild/
+/nbbuild/S
 /dist/
 /nbdist/
 /.nb-gradle/
@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+.env.scratch
+.env.prod
