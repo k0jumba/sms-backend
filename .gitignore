@@ -34,4 +34,3 @@ build/
 
 .env.scratch
 .env.prod
-.env.test
