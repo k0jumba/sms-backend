@@ -35,7 +35,9 @@ public class SecurityConfig {
     private long maxAge;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http, ApiAccessDeniedHandler accessDeniedHandler
+    ) throws Exception {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -52,6 +54,10 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().denyAll()
+                )
+
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
 
         return http.build();
