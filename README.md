@@ -4,6 +4,16 @@
 
 Создать `.env.scratch` и `.env.prod`. Заполнить их, согласно .env.scratch.example и .env.prod.example.
 
+## Запустить тесты
+
+Удалить старые сборки
+
+`./mvnw clean`
+
+Запустить тесты
+
+`./mvnw test`
+
 ## Запустить scratch
 
 Удалить старые сборки
