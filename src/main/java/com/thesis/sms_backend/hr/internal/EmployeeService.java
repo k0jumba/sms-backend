@@ -1,5 +1,6 @@
 package com.thesis.sms_backend.hr.internal;
 
+import com.thesis.sms_backend.core.UniqueConstraintViolationException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,16 @@ public class EmployeeService {
 
     public Employee getById(UUID uuid) {
         return employeeRepository.findById(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Employee not found: " + uuid));
+                .orElseThrow(EntityNotFoundException::new);
     }
 
     @Transactional
     public Employee create(CreateEmployeeRequest request) {
+        if (employeeRepository.existsByEmail(request.email()))
+            throw new UniqueConstraintViolationException("email", request.email());
+        if (employeeRepository.existsByPhone(request.phone()))
+            throw new UniqueConstraintViolationException("phone", request.phone());
+
         Employee employee = Employee.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())
