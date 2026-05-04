@@ -2,6 +2,7 @@ package com.thesis.sms_backend.core;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +64,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>(false, null, error, null));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleConstraintViolation(ConstraintViolationException ex) {
+        List<ApiError.FieldViolation> fields = ex.getConstraintViolations().stream()
+                .map(cv -> {
+                    String field = cv.getPropertyPath().toString();
+                    field = field.contains(".") ? field.substring(field.lastIndexOf('.') + 1) : field;
+                    return new ApiError.FieldViolation(field, cv.getMessage());
+                })
+                .toList();
+
+        return ResponseEntity
+                .status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ApiResponse<>(false, null,
+                        new ApiError("UNPROCESSABLE_ENTITY", "Invalid request parameters", fields),
+                        null));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

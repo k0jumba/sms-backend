@@ -1,12 +1,14 @@
 package com.thesis.sms_backend.hr.internal;
 
+import com.thesis.sms_backend.core.PagedResult;
 import com.thesis.sms_backend.core.UniqueConstraintViolationException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -15,8 +17,10 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
 
-    public List<Employee> getAll() {
-        return employeeRepository.findAll();
+    @Transactional(readOnly = true)
+    public PagedResult<Employee> findAll(int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return PagedResult.from(employeeRepository.findAll(pageable));
     }
 
     public Employee getById(UUID uuid) {
