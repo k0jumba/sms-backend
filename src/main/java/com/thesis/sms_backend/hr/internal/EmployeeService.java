@@ -48,13 +48,18 @@ public class EmployeeService {
     public Employee update(UUID uuid, UpdateEmployeeRequest request) {
         Employee employee = getById(uuid);
 
-        if (request.firstName() != null)  employee.setFirstName(request.firstName());
-        if (request.lastName() != null)   employee.setLastName(request.lastName());
-        if (request.middleName() != null) employee.setMiddleName(request.middleName());
-        if (request.role() != null)       employee.setRole(request.role());
-        if (request.active() != null)     employee.setActive(request.active());
-        if (request.email() != null)      employee.setEmail(request.email());
-        if (request.phone() != null)      employee.setPhone(request.phone());
+        if (request.getEmail().isPresent() && employeeRepository.existsByEmail(request.getEmail().getValue()))
+            throw new UniqueConstraintViolationException("email", request.getEmail());
+        if (request.getPhone().isPresent() && employeeRepository.existsByPhone(request.getPhone().getValue()))
+            throw new UniqueConstraintViolationException("phone", request.getPhone());
+
+        request.getFirstName().ifPresent(employee::setFirstName);
+        request.getLastName().ifPresent(employee::setLastName);
+        request.getMiddleName().ifPresent(employee::setMiddleName);
+        request.getEmail().ifPresent(employee::setEmail);
+        request.getPhone().ifPresent(employee::setPhone);
+        request.getRole().ifPresent(employee::setRole);
+        request.getActive().ifPresent(employee::setActive);
 
         return employeeRepository.save(employee);
     }
