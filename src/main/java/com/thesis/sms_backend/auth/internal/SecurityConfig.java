@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .anonymous(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/hr/employees/**").permitAll()
                         .anyRequest().denyAll()
                 )
 
