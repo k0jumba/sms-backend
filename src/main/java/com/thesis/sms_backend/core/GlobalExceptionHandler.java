@@ -1,6 +1,5 @@
 package com.thesis.sms_backend.core;
 
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +20,13 @@ import java.util.List;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleNoResourceFound(NoResourceFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, null, new ApiError("NOT_FOUND", "Route not found"), null));
+    }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
@@ -49,17 +56,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<?>> handleNotReadable(HttpMessageNotReadableException ex) {
-        ApiError error;
-
-        Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException ife && !ife.getPath().isEmpty()) {
-            String field = ife.getPath().getFirst().getFieldName();
-            String value = String.valueOf(ife.getValue());
-            error = new ApiError("BAD_REQUEST",
-                    String.format("Invalid value '%s' for field '%s'", value, field));
-        } else {
-            error = new ApiError("BAD_REQUEST", "Malformed or unreadable request body");
-        }
+        ApiError error = new ApiError("BAD_REQUEST", "Malformed or unreadable request body");
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
