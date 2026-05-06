@@ -45,10 +45,6 @@ class EmployeeControllerTest {
     @MockitoBean
     EmployeeService employeeService;
 
-    // ---------------------------------------------------------------------------
-    // Fixtures
-    // ---------------------------------------------------------------------------
-
     static final int DEFAULT_PAGE      = 0;
     static final int DEFAULT_PAGE_SIZE = 20;
 
@@ -68,9 +64,23 @@ class EmployeeControllerTest {
         return new PagedResult<>(content, page, pageSize, total, totalPages);
     }
 
-    // ===========================================================================
-    // Routing constraints
-    // ===========================================================================
+    static String removeField(String json, String field) {
+        return json.replaceAll("(?m)^\\s*\"" + field + "\"\\s*:.*,?\\n", "");
+    }
+
+    static String setFieldNull(String json, String field) {
+        return json.replaceAll(
+                "(\"" + field + "\"\\s*:\\s*)([^,\\n}]+)",
+                "$1null"
+        );
+    }
+
+    static String replaceFieldValue(String json, String field, String rawValue) {
+        return json.replaceAll(
+                "(\"" + field + "\"\\s*:\\s*)([^,\\n}]+)",
+                "$1" + rawValue
+        );
+    }
 
     @Nested
     class RoutingConstraints {
@@ -104,16 +114,8 @@ class EmployeeControllerTest {
         }
     }
 
-    // ===========================================================================
-    // GET /api/hr/employees
-    // ===========================================================================
-
     @Nested
     class GetAll {
-
-        // -----------------------------------------------------------------------
-        // Validation
-        // -----------------------------------------------------------------------
 
         @ParameterizedTest(name = "page={0} -> 422")
         @ValueSource(ints = {-1, -100})
@@ -137,10 +139,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"));
         }
 
-        // -----------------------------------------------------------------------
-        // Explicit pagination
-        // -----------------------------------------------------------------------
-
         @Test
         void explicitPagination_fullPage_returns200WithCorrectDataAndMeta() throws Exception {
             List<Employee> employees = List.of(
@@ -155,12 +153,10 @@ class EmployeeControllerTest {
                             .param("pageSize", "2"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
-                    // data
                     .andExpect(jsonPath("$.data").isArray())
                     .andExpect(jsonPath("$.data.length()").value(2))
                     .andExpect(jsonPath("$.data[0].firstName").value("Alice"))
                     .andExpect(jsonPath("$.data[1].firstName").value("Bob"))
-                    // meta
                     .andExpect(jsonPath("$.meta.page").value(1))
                     .andExpect(jsonPath("$.meta.pageSize").value(2))
                     .andExpect(jsonPath("$.meta.totalElements").value(10))
@@ -172,7 +168,6 @@ class EmployeeControllerTest {
             List<Employee> employees = List.of(
                     employee("Carol", "carol@example.com")
             );
-            // pageSize=2 requested but only 1 item exists on this page
             when(employeeService.findAll(eq(1), eq(2)))
                     .thenReturn(pagedResult(employees, 1, 2, 3L));
 
@@ -186,10 +181,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.meta.totalElements").value(3))
                     .andExpect(jsonPath("$.meta.totalPages").value(2));
         }
-
-        // -----------------------------------------------------------------------
-        // Default pagination (no query params)
-        // -----------------------------------------------------------------------
 
         @Test
         void defaultPagination_fullPage_returns200WithDefaultPageSizeItemsAndMeta() throws Exception {
@@ -227,10 +218,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.meta.totalPages").value(1));
         }
     }
-
-    // ===========================================================================
-    // GET /api/hr/employees/{uuid}
-    // ===========================================================================
 
     @Nested
     class GetById {
@@ -271,16 +258,8 @@ class EmployeeControllerTest {
         }
     }
 
-    // ===========================================================================
-    // POST /api/hr/employees
-    // ===========================================================================
-
     @Nested
     class CreateEmployee {
-
-        // -----------------------------------------------------------------------
-        // Shared valid body
-        // -----------------------------------------------------------------------
 
         final String VALID_BODY = """
                 {
@@ -293,10 +272,6 @@ class EmployeeControllerTest {
                     "middleName": "A"
                 }
                 """;
-
-        // -----------------------------------------------------------------------
-        // 422 — missing / null required fields
-        // -----------------------------------------------------------------------
 
         @ParameterizedTest(name = "missing {0} -> 422")
         @ValueSource(strings = {"firstName", "lastName", "role", "active", "email", "phone"})
@@ -341,10 +316,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.error.fields[?(@.field == 'email')]").exists());
         }
 
-        // -----------------------------------------------------------------------
-        // 400 — wrong types (strict Jackson coercion)
-        // -----------------------------------------------------------------------
-
         @ParameterizedTest(name = "integer value for string field {0} -> 400")
         @ValueSource(strings = {"firstName", "lastName", "middleName", "email", "phone"})
         void integerValueForStringField_returns400(String field) throws Exception {
@@ -382,10 +353,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.error.message").value("Malformed or unreadable request body"));
         }
 
-        // -----------------------------------------------------------------------
-        // 409 — unique constraint violations
-        // -----------------------------------------------------------------------
-
         @Test
         void duplicateEmail_returns409() throws Exception {
             when(employeeService.create(any()))
@@ -414,10 +381,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.error.fields[?(@.field == 'phone')]").exists());
         }
 
-        // -----------------------------------------------------------------------
-        // 201 — happy path
-        // -----------------------------------------------------------------------
-
         @Test
         void validRequest_returns201WithCreatedEmployee() throws Exception {
             Employee created = employee("Alice", "alice@example.com");
@@ -431,31 +394,6 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.data.firstName").value("Alice"))
                     .andExpect(jsonPath("$.data.email").value("alice@example.com"))
                     .andExpect(jsonPath("$.error").doesNotExist());
-        }
-
-        // -----------------------------------------------------------------------
-        // Body manipulation helpers
-        // -----------------------------------------------------------------------
-
-        /** Removes the line containing "field": ... from a JSON string. */
-        private String removeField(String json, String field) {
-            return json.replaceAll("(?m)^\\s*\"" + field + "\"\\s*:.*,?\\n", "");
-        }
-
-        /** Replaces the value of a field with JSON null. */
-        private String setFieldNull(String json, String field) {
-            return json.replaceAll(
-                    "(\"" + field + "\"\\s*:\\s*)([^,\\n}]+)",
-                    "$1null"
-            );
-        }
-
-        /** Replaces the value of a field with an arbitrary raw JSON value. */
-        private String replaceFieldValue(String json, String field, String rawValue) {
-            return json.replaceAll(
-                    "(\"" + field + "\"\\s*:\\s*)([^,\\n}]+)",
-                    "$1" + rawValue
-            );
         }
     }
 }
