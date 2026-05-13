@@ -2,10 +2,7 @@ package com.thesis.sms_backend.hr;
 
 import com.thesis.sms_backend.auth.internal.ApiAccessDeniedHandler;
 import com.thesis.sms_backend.auth.internal.SecurityConfig;
-import com.thesis.sms_backend.core.StrictJacksonConfig;
-import com.thesis.sms_backend.core.GlobalExceptionHandler;
-import com.thesis.sms_backend.core.PagedResult;
-import com.thesis.sms_backend.core.UniqueConstraintViolationException;
+import com.thesis.sms_backend.core.*;
 import com.thesis.sms_backend.hr.internal.Employee;
 import com.thesis.sms_backend.hr.internal.EmployeeController;
 import com.thesis.sms_backend.hr.internal.EmployeeService;
@@ -29,13 +26,14 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({EmployeeController.class, SecurityConfig.class, ApiAccessDeniedHandler.class})
-@Import({GlobalExceptionHandler.class, StrictJacksonConfig.class})
+@Import({GlobalExceptionHandler.class, StrictJacksonConfig.class, JacksonPatchConfig.class})
 @Slf4j
 class EmployeeControllerTest {
 
@@ -91,6 +89,8 @@ class EmployeeControllerTest {
             mockMvc.perform(request(HttpMethod.valueOf(method), "/api/hr/employees/non-existent/path"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
                     .andExpect(jsonPath("$.error.message").value("Route not found"));
         }
@@ -101,6 +101,8 @@ class EmployeeControllerTest {
             mockMvc.perform(request(HttpMethod.valueOf(method), "/api/hr/employees"))
                     .andExpect(status().isMethodNotAllowed())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("METHOD_NOT_ALLOWED"));
         }
 
@@ -110,6 +112,8 @@ class EmployeeControllerTest {
             mockMvc.perform(request(HttpMethod.valueOf(method), "/api/hr/employees/00000000-0000-0000-0000-000000000001"))
                     .andExpect(status().isMethodNotAllowed())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("METHOD_NOT_ALLOWED"));
         }
     }
@@ -125,6 +129,8 @@ class EmployeeControllerTest {
                             .param("pageSize", "20"))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"));
         }
 
@@ -136,6 +142,8 @@ class EmployeeControllerTest {
                             .param("pageSize", String.valueOf(pageSize)))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"));
         }
 
@@ -160,7 +168,8 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.meta.page").value(1))
                     .andExpect(jsonPath("$.meta.pageSize").value(2))
                     .andExpect(jsonPath("$.meta.totalElements").value(10))
-                    .andExpect(jsonPath("$.meta.totalPages").value(5));
+                    .andExpect(jsonPath("$.meta.totalPages").value(5))
+                    .andExpect(jsonPath("$.error").doesNotExist());
         }
 
         @Test
@@ -175,11 +184,13 @@ class EmployeeControllerTest {
                             .param("page",     "1")
                             .param("pageSize", "2"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.length()").value(1))
                     .andExpect(jsonPath("$.meta.page").value(1))
                     .andExpect(jsonPath("$.meta.pageSize").value(2))
                     .andExpect(jsonPath("$.meta.totalElements").value(3))
-                    .andExpect(jsonPath("$.meta.totalPages").value(2));
+                    .andExpect(jsonPath("$.meta.totalPages").value(2))
+                    .andExpect(jsonPath("$.error").doesNotExist());
         }
 
         @Test
@@ -193,11 +204,13 @@ class EmployeeControllerTest {
 
             mockMvc.perform(get("/api/hr/employees"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.length()").value(DEFAULT_PAGE_SIZE))
                     .andExpect(jsonPath("$.meta.page").value(DEFAULT_PAGE))
                     .andExpect(jsonPath("$.meta.pageSize").value(DEFAULT_PAGE_SIZE))
                     .andExpect(jsonPath("$.meta.totalElements").value(50))
-                    .andExpect(jsonPath("$.meta.totalPages").value(3));
+                    .andExpect(jsonPath("$.meta.totalPages").value(3))
+                    .andExpect(jsonPath("$.error").doesNotExist());
         }
 
         @Test
@@ -211,11 +224,13 @@ class EmployeeControllerTest {
 
             mockMvc.perform(get("/api/hr/employees"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.length()").value(2))
                     .andExpect(jsonPath("$.meta.page").value(DEFAULT_PAGE))
                     .andExpect(jsonPath("$.meta.pageSize").value(DEFAULT_PAGE_SIZE))
                     .andExpect(jsonPath("$.meta.totalElements").value(2))
-                    .andExpect(jsonPath("$.meta.totalPages").value(1));
+                    .andExpect(jsonPath("$.meta.totalPages").value(1))
+                    .andExpect(jsonPath("$.error").doesNotExist());
         }
     }
 
@@ -229,17 +244,21 @@ class EmployeeControllerTest {
             mockMvc.perform(get("/api/hr/employees/not-a-uuid"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
                     .andExpect(jsonPath("$.error.message").value("Invalid value 'not-a-uuid' for parameter 'uuid'"));
         }
 
         @Test
         void unknownUuid_returns404ResourceNotFound() throws Exception {
-            when(employeeService.getById(id)).thenThrow(new EntityNotFoundException());
+            when(employeeService.getById(eq(id))).thenThrow(new EntityNotFoundException());
 
             mockMvc.perform(get("/api/hr/employees/{uuid}", id))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
                     .andExpect(jsonPath("$.error.message").value("Resource not found"));
         }
@@ -247,13 +266,14 @@ class EmployeeControllerTest {
         @Test
         void existingUuid_returns200WithEmployee() throws Exception {
             Employee emp = employee("Alice", "alice@example.com");
-            when(employeeService.getById(id)).thenReturn(emp);
+            when(employeeService.getById(eq(id))).thenReturn(emp);
 
             mockMvc.perform(get("/api/hr/employees/{uuid}", id))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.firstName").value("Alice"))
                     .andExpect(jsonPath("$.data.email").value("alice@example.com"))
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error").doesNotExist());
         }
     }
@@ -283,6 +303,8 @@ class EmployeeControllerTest {
                             .content(body))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"))
                     .andExpect(jsonPath("$.error.message").value("Method argument not valid"))
                     .andExpect(jsonPath("$.error.fields[?(@.field == '" + field + "')]").exists());
@@ -298,6 +320,8 @@ class EmployeeControllerTest {
                             .content(body))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"))
                     .andExpect(jsonPath("$.error.message").value("Method argument not valid"))
                     .andExpect(jsonPath("$.error.fields[?(@.field == '" + field + "')]").exists());
@@ -312,6 +336,8 @@ class EmployeeControllerTest {
                             .content(body))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"))
                     .andExpect(jsonPath("$.error.fields[?(@.field == 'email')]").exists());
         }
@@ -326,6 +352,8 @@ class EmployeeControllerTest {
                             .content(body))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
                     .andExpect(jsonPath("$.error.message").value("Malformed or unreadable request body"));
         }
@@ -338,6 +366,9 @@ class EmployeeControllerTest {
                             .contentType("application/json")
                             .content(body))
                     .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"));
         }
 
@@ -349,6 +380,9 @@ class EmployeeControllerTest {
                             .contentType("application/json")
                             .content(body))
                     .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
                     .andExpect(jsonPath("$.error.message").value("Malformed or unreadable request body"));
         }
@@ -363,6 +397,8 @@ class EmployeeControllerTest {
                             .content(VALID_BODY))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("CONFLICT"))
                     .andExpect(jsonPath("$.error.fields[?(@.field == 'email')]").exists());
         }
@@ -377,6 +413,8 @@ class EmployeeControllerTest {
                             .content(VALID_BODY))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error.code").value("CONFLICT"))
                     .andExpect(jsonPath("$.error.fields[?(@.field == 'phone')]").exists());
         }
@@ -393,6 +431,240 @@ class EmployeeControllerTest {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.data.firstName").value("Alice"))
                     .andExpect(jsonPath("$.data.email").value("alice@example.com"))
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error").doesNotExist());
+        }
+    }
+
+    @Nested
+    class UpdateEmployee {
+        final UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        final String VALID_BODY = """
+                {
+                    "firstName": "Alice",
+                    "lastName":  "Doe",
+                    "role":      "TEACHER",
+                    "active":    true,
+                    "email":     "alice@example.com",
+                    "phone":     "+1000000000",
+                    "middleName": "A"
+                }
+                """;
+
+        final String ALTERNATIVE_VALID_BODY = """
+                {
+                    "firstName": "Alice"
+                }
+                """;
+
+        @Test
+        void malformedUuid_returns400WithDescriptiveMessage() throws Exception {
+            mockMvc.perform(patch("/api/hr/employees/not-a-uuid")
+                            .contentType("application/json")
+                            .content(VALID_BODY))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.error.message").value("Invalid value 'not-a-uuid' for parameter 'uuid'"));
+        }
+
+        @Test
+        void unknownUuid_returns404ResourceNotFound() throws Exception {
+            when(employeeService.update(eq(id), any())).thenThrow(new EntityNotFoundException());
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(VALID_BODY))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.error.message").value("Resource not found"));
+        }
+
+        @ParameterizedTest(name = "present and null {0} -> 422")
+        @ValueSource(strings = {"firstName", "lastName", "role", "active", "email", "phone"})
+        void presentAndNullValueForNotNullableField_returns422(String field)  throws Exception {
+            String body = setFieldNull(VALID_BODY, field);
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                    .contentType("application/json")
+                    .content(body))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.meta").doesNotExist())
+                .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"))
+                .andExpect(jsonPath("$.error.message").value("Method argument not valid"))
+                .andExpect(jsonPath("$.error.fields[?(@.field == '" + field + "')]").exists());
+        }
+
+        @ParameterizedTest(name = "integer value for string field {0} -> 400")
+        @ValueSource(strings = {"firstName", "lastName", "middleName", "email", "phone"})
+        void integerValueForStringField_returns400(String field) throws Exception {
+            String body = replaceFieldValue(VALID_BODY, field, "123");
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.error.message").value("Malformed or unreadable request body"));
+        }
+
+        @Test
+        void integerValueForBooleanField_returns400() throws Exception {
+            String body = replaceFieldValue(VALID_BODY, "active", "1");
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"));
+        }
+
+        @Test
+        void invalidRoleValue_returns400() throws Exception {
+            String body = replaceFieldValue(VALID_BODY, "role", "\"INVALID_ROLE\"");
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.error.message").value("Malformed or unreadable request body"));
+        }
+
+
+        @Test
+        void invalidEmailFormat_returns422() throws Exception {
+            String body = replaceFieldValue(VALID_BODY, "email", "\"not-an-email\"");
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("UNPROCESSABLE_ENTITY"))
+                    .andExpect(jsonPath("$.error.fields[?(@.field == 'email')]").exists());
+        }
+
+        @Test
+        void duplicateEmail_returns409() throws Exception {
+            when(employeeService.update(eq(id), any()))
+                    .thenThrow(new UniqueConstraintViolationException("email", "alice@example.com"));
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(VALID_BODY))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("CONFLICT"))
+                    .andExpect(jsonPath("$.error.fields[?(@.field == 'email')]").exists());
+        }
+
+        @Test
+        void duplicatePhone_returns409() throws Exception {
+            when(employeeService.update(eq(id), any()))
+                    .thenThrow(new UniqueConstraintViolationException("phone", "+1000000000"));
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(VALID_BODY))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("CONFLICT"))
+                    .andExpect(jsonPath("$.error.fields[?(@.field == 'phone')]").exists());
+        }
+
+        @Test
+        void validRequest_returns200WithUpdatedEmployee() throws Exception {
+            Employee updated = employee("Alice", "alice@example.com");
+            when(employeeService.update(eq(id), any())).thenReturn(updated);
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(VALID_BODY))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.data.email").value("alice@example.com"))
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error").doesNotExist());
+        }
+
+        @Test
+        void alternativeValidRequest_returns200WithUpdatedEmployee() throws Exception {
+            Employee updated = employee("Alice", "alice@example.com");
+            when(employeeService.update(eq(id), any())).thenReturn(updated);
+
+            mockMvc.perform(patch("/api/hr/employees/{uuid}", id)
+                            .contentType("application/json")
+                            .content(ALTERNATIVE_VALID_BODY))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error").doesNotExist());
+        }
+    }
+
+    @Nested
+    class DeleteEmployee {
+        final UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+        @Test
+        void malformedUuid_returns400WithDescriptiveMessage() throws Exception {
+            mockMvc.perform(delete("/api/hr/employees/not-a-uuid"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.error.message").value("Invalid value 'not-a-uuid' for parameter 'uuid'"));
+        }
+
+        @Test
+        void unknownUuid_returns404ResourceNotFound() throws Exception {
+            doThrow(new EntityNotFoundException())
+                    .when(employeeService)
+                    .delete(eq(id));
+
+            mockMvc.perform(delete("/api/hr/employees/{uuid}", id))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.success").value(false))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.error.message").value("Resource not found"));
+        }
+
+        @Test
+        void validRequest_returns200NoData() throws Exception {
+            mockMvc.perform(delete("/api/hr/employees/{uuid}", id))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
                     .andExpect(jsonPath("$.error").doesNotExist());
         }
     }

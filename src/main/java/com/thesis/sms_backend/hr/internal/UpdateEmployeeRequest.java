@@ -16,20 +16,27 @@ public class UpdateEmployeeRequest {
     @NotNullIfPresent
     @Builder.Default
     private Patch<String> firstName = Patch.absent();
+
     @NotNullIfPresent
     @Builder.Default
     private Patch<String> lastName = Patch.absent();
+
     @Builder.Default
     private Patch<String> middleName = Patch.absent();
+
     @NotNullIfPresent
     @ValidEmailIfPresent
     @Builder.Default
     private Patch<String> email = Patch.absent();
+
+    @NotNullIfPresent
     @Builder.Default
     private Patch<String> phone = Patch.absent();
+
     @NotNullIfPresent
     @Builder.Default
     private Patch<Employee.Role> role = Patch.absent();
+
     @NotNullIfPresent
     @Builder.Default
     private Patch<Boolean> active = Patch.absent();
