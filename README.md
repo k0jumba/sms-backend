@@ -38,6 +38,10 @@
 
 `./load-env.ps1 .env.prod`
 
+Запустить сервер в контейнере в фоновом процессе, собрав образ сервера заново
+
+`docker compose -f docker-compose.prod.yml up -d --build`
+
 Запустить сервер в контейнере в фоновом процессе
 
-`docker compose -f docker-compose.prod.yml up -d `
+`docker compose -f docker-compose.prod.yml up -d`
