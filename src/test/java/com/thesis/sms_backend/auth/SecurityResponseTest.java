@@ -2,6 +2,7 @@ package com.thesis.sms_backend.auth;
 
 import com.thesis.sms_backend.auth.internal.ApiAccessDeniedHandler;
 import com.thesis.sms_backend.auth.internal.SecurityConfig;
+import com.thesis.sms_backend.auth.internal.UserService;
 import com.thesis.sms_backend.hr.internal.EmployeeService;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,9 @@ class SecurityResponseTest {
 
     @MockitoBean
     EmployeeService employeeService;
+
+    @MockitoBean
+    UserService userService;
 
     @Test
     void allRequests_returnStandardized403() throws Exception {
